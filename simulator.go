@@ -2,61 +2,93 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/soypat/ahrs"
 	"github.com/spf13/pflag"
+	"github.com/tarm/serial"
 )
+
+var dbgPrintDiv = 10
 
 func main() {
 	var (
-		tty  = "/dev/ttyUSB0"
-		port = ":8080"
+		tty          = "/dev/ttyUSB0"
+		port         = ":8080"
+		baud    uint = 115200
+		monitor      = false
 	)
-	pflag.StringVarP(&tty, "ttl", "f", tty, "Device USB port/file. Has form COM1 on windows. Has form /dev/ttyACM on linux.")
+	pflag.StringVarP(&tty, "ttl", "F", tty, "Device USB port/file. Has form COM1 on windows. Has form /dev/ttyACM on linux.")
 	pflag.StringVarP(&port, "port", "p", port, "TCP port on which to serve HTTP.")
-
+	pflag.UintVarP(&baud, "baud", "", baud, "Serial (USB) baudrate.")
+	pflag.IntVarP(&dbgPrintDiv, "debugDiv", "", dbgPrintDiv, "Debug print divider. Higher this number, the less prints.")
+	pflag.BoolVarP(&monitor, "monitor", "m", monitor, "Just print port output.")
 	pflag.Parse()
-	fp, err := os.Open(tty)
+
+	dbgPrintDiv++ // can not be zero
+	fp, err := serial.OpenPort(&serial.Config{
+		Name:        tty,
+		Baud:        int(baud),
+		ReadTimeout: time.Second,
+	})
 	must(err)
+	if monitor {
+		_, err := io.Copy(os.Stdout, fp)
+		must(err)
+		log.Fatal("monitor ended")
+	}
+
 	rd := bufio.NewReader(fp)
 	imu := &fieldReaderIMU{r: rd}
-	estimater := ahrs.NewXioARS(5, imu)
-	tLast := time.Now()
-	// IMU reader goroutine
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go imu.Run(ctx)
+	estimater := ahrs.NewXioARS(0.3, imu)
+
+	// Attitude update goroutine
 	go func() {
-		tick := time.NewTicker(5 * time.Millisecond)
-		for tm := range tick.C {
-			err = imu.Update(fp)
-			if err != nil {
-				log.Print(err)
+		i := 0
+		tick := time.NewTicker(10 * time.Millisecond)
+		tlast := time.Now()
+		for tickTime := range tick.C {
+			select {
+			case <-ctx.Done():
+				log.Println("attitude update done")
+				return
+			default:
 			}
-			estimater.Update(time.Since(tLast).Seconds())
-			tLast = tm
+			i++
+			estimater.Update(time.Since(tlast).Seconds())
+			tlast = tickTime
+			if i%int(dbgPrintDiv) == 1 {
+				log.Println("updated estimate")
+			}
 		}
 	}()
-
 	// Server handler
+	attCounter := 0
 	http.HandleFunc("/attitude", func(rw http.ResponseWriter, r *http.Request) {
-		log.Print("serving attitude")
+		attCounter++
 		if allowCORS(rw, r) {
 			return
 		}
 		q := estimater.GetQuaternion()
 		rot := ahrs.RotationMatrixFromQuat(q)
 		angles := rot.TaitBryan(ahrs.OrderXYZ)
-		tLast = time.Now()
 		e := json.NewEncoder(rw)
 		must(e.Encode(&angles))
+		if attCounter%int(dbgPrintDiv) == 1 {
+			log.Print("attitude served")
+		}
 	})
 	srv := http.Server{
 		Addr:    port,
@@ -88,44 +120,61 @@ func must(err error) {
 
 type fieldReaderIMU struct {
 	sync.Mutex
-	r *bufio.Reader
-	a [3]int32
-	g [3]int32
+	r   *bufio.Reader
+	val [6]int32
 }
 
-func (imu *fieldReaderIMU) Update(r io.Reader) error {
+func (imu *fieldReaderIMU) Run(ctx context.Context) {
+	defer log.Println("imu.Run finished")
 	rd := imu.r
-	rd.Reset(r)        // discard old data
-	rd.ReadBytes('\n') // Discard all data until next newline
-	s, err := rd.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	values := strings.Fields(s)
-	if len(values) < 6 {
-		return errors.New("not enough fields read")
-	}
-	log.Print("got values: ", values)
-	ival := make([]int32, 6)
-	for i := range ival {
-		I, err := strconv.Atoi(values[i])
-		if err != nil {
-			return err
+	j := 0
+	for {
+		j++
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
-		ival[i] = int32(I)
+		line, err := rd.ReadBytes('\n') // Discard all data until next newline
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		values := bytes.Fields(line)
+		if len(values) != len(imu.val) {
+			// expected exactly 6 accelerometer+gyro values
+			log.Println("expected 6 values, found ", len(values))
+			continue
+		}
+		imu.Lock()
+		for i := range values {
+			v, err := strconv.ParseInt(string(values[i]), 10, 32)
+			if err != nil {
+				log.Println("error reading value")
+				break // if one value is corrupted/bad it is unlikely others will be fine.
+			}
+			imu.val[i] = int32(v)
+		}
+		imu.Unlock()
+		if j%dbgPrintDiv == 1 {
+			log.Println("processed values ", imu.val)
+		}
 	}
-	copy(imu.a[:], ival)
-	copy(imu.g[:], ival[3:])
-	return nil
 }
+
+var sensCount = 0
 
 func (imu *fieldReaderIMU) Acceleration() (ax, ay, az int32) {
 	imu.Lock()
+	sensCount++
 	defer imu.Unlock()
-	return imu.a[0], imu.a[1], imu.a[2]
+	if sensCount%dbgPrintDiv == 1 {
+		log.Println("imu accel read: ", imu.val)
+	}
+	return imu.val[0], imu.val[1], imu.val[2]
 }
 func (imu *fieldReaderIMU) AngularVelocity() (gx, gy, gz int32) {
 	imu.Lock()
 	defer imu.Unlock()
-	return imu.g[0], imu.g[1], imu.g[2]
+	return imu.val[3], imu.val[4], imu.val[5]
 }

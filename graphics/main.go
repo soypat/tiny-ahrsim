@@ -92,7 +92,7 @@ func main() {
 			return nil
 		}()
 		<-wait
-		time.Sleep(40 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
