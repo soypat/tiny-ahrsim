@@ -1,5 +1,5 @@
 # tiny-ahrsim
-TinyGo attitude estimation simulation applet.
+TinyGo attitude estimation simulation applet. [Here's a youtube video](https://www.youtube.com/watch?v=M0_s6UW86cs&ab_channel=PatricioWhittingslow) of the app in action with a Raspberry Pi Pico.
 
 
 ## Instructions
