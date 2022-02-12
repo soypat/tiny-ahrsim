@@ -77,7 +77,6 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/divan/three v0.0.0-20190518222012-e7fb2420829c/go.mod h1:mvdRimXSTqMErVt0/gKwmuW1YpM0bJNKEKPnMC4qols=
 github.com/eclipse/paho.mqtt.golang v1.2.0/go.mod h1:H9keYFcgq3Qr5OUJm/JZI/i6U7joQ8SYLhZwfeOo6Ts=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -287,8 +286,8 @@ github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/soypat/ahrs v0.0.0-20210923143813-90fcfbfbce78 h1:HQeDBLFyf2TvHenHsLvIsfcyVeESP+YyqaJOCohDLG4=
 github.com/soypat/ahrs v0.0.0-20210923143813-90fcfbfbce78/go.mod h1:szS8GtgWtd8X8OVFJu0wt/k7omyUW3gJrw7udGHGRaI=
-github.com/soypat/three v0.0.0-20210922142634-714b1a84a674 h1:IPmaUx4sCNoCHEtABi+fI9a0Sl/3clWmahxzKee+6Nk=
-github.com/soypat/three v0.0.0-20210922142634-714b1a84a674/go.mod h1:41Lg6XhRwUaaYoFwcveI0IfUXjCYT+AjXhbYtF/4Atw=
+github.com/soypat/gthree v0.0.0-20220210181106-41860a2d72e0 h1:f2C+d/rCWCK9XjPt3aRa48d9oMvanrKZ90nK+YaOYsU=
+github.com/soypat/gthree v0.0.0-20220210181106-41860a2d72e0/go.mod h1:mawDDqF0XI3S6mgdwUpAA/30HWJshQDnJPwjTkG8zQk=
 github.com/soypat/tiny-lax v0.0.0-20210926205430-ffa1d151c9ae h1:bz4TAIGputn41yxvUFqEjLIi9g3Uw9LN+15/QFieobI=
 github.com/soypat/tiny-lax v0.0.0-20210926205430-ffa1d151c9ae/go.mod h1:pdXTvusKocX+Aj5pzJavl/Vo3INGbtLBqny8xZjwNmo=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=

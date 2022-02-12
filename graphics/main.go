@@ -7,7 +7,7 @@ import (
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/soypat/ahrs"
-	"github.com/soypat/three"
+	three "github.com/soypat/gthree"
 )
 
 func main() {
