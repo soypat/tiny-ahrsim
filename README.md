@@ -8,7 +8,7 @@ TinyGo attitude estimation simulation applet. [Here's a youtube video](https://w
 * Go installed ([golang.org](https://golang.org/))
 * git installed ([git-scm.com](https://git-scm.com/downloads))
 * TinyGo installed ([tinygo.org](https://tinygo.org/getting-started/install/))
-* [gopherjs](https://github.com/gopherjs/gopherjs) installed: once Go installed, run `go get -u github.com/gopherjs/gopherjs` in console
+* [gopherjs](https://github.com/gopherjs/gopherjs) installed: once Go installed, run `go install github.com/gopherjs/gopherjs@latest` in console
 
 ### Steps
 
@@ -36,3 +36,9 @@ TinyGo attitude estimation simulation applet. [Here's a youtube video](https://w
     ```
 
 5. Open `index.html` with a browser and you are set.
+
+## ⚠️ Notice! ⚠️
+The [gopherjs bindings](https://github.com/soypat/gthree) for `three.js` have been archived!
+
+If you are starting a new project consider using the [WASM bindings](https://github.com/soypat/three)!
+
