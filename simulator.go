@@ -18,12 +18,15 @@ import (
 	"github.com/tarm/serial"
 )
 
-var dbgPrintDiv = 10
+var (
+	dbgPrintDiv = 10
+	imu         *fieldReaderIMU
+)
 
 func main() {
 	var (
-		tty          = "/dev/ttyUSB0"
-		port         = ":8080"
+		tty          = "/dev/ttyACM0"
+		port         = ":8081"
 		baud    uint = 115200
 		monitor      = false
 	)
@@ -48,10 +51,11 @@ func main() {
 	}
 
 	rd := bufio.NewReader(fp)
-	imu := &fieldReaderIMU{r: rd}
+	imu = &fieldReaderIMU{r: rd}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go imu.Run(ctx)
+	chatgpt := ahrs.NewMadgwickFilter(0.1)
 	estimater := ahrs.NewXioARS(0.3, imu)
 
 	// Attitude update goroutine
@@ -67,7 +71,14 @@ func main() {
 			default:
 			}
 			i++
-			estimater.Update(time.Since(tlast).Seconds())
+			ax, ay, az := imu.Acceleration()
+			gx, gy, gz := imu.AngularVelocity()
+			const ug2ms = 101971.62129779
+			fax, fay, faz := float64(ax), float64(ay), float64(az)
+			fgx, fgy, fgz := float64(gx), float64(gy), float64(gz)
+			samplePeriod := time.Since(tlast).Seconds()
+			chatgpt.UpdateARS(fax/ug2ms, fay/ug2ms, faz/ug2ms, fgx/1e6, fgy/1e6, fgz/1e6, samplePeriod)
+			estimater.Update(samplePeriod)
 			tlast = tickTime
 			if i%int(dbgPrintDiv) == 1 {
 				log.Println("updated estimate")
@@ -81,7 +92,8 @@ func main() {
 		if allowCORS(rw, r) {
 			return
 		}
-		q := estimater.GetQuaternion()
+		q := chatgpt.GetQuaternion()
+		// q := estimater.GetQuaternion()
 		rot := ahrs.RotationMatrixFromQuat(q)
 		angles := rot.TaitBryan(ahrs.OrderXYZ)
 		e := json.NewEncoder(rw)
